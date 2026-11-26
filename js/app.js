@@ -21,6 +21,8 @@ let wishVideoUnlocked=false;
 let bgMusicWasPlayingBeforeWishVideo=false;
 let restartedFromEnd=false;
 let cameraFacing='user';
+let countdownAlertTimer=null;
+let countdownAlertHideTimer=null;
 
 wishVideo.src=MEDIA_PATHS.wishVideo;
 wishVideo.muted=true;
@@ -357,14 +359,69 @@ function showRoom(i){
 }
 
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),2200)}
+
+function getCountdownAlertEl(){
+  const startBtn=document.querySelector('[data-room="0"] [data-next]');
+  if(!startBtn)return null;
+  const actionsContainer=startBtn.closest('.actions')||startBtn.parentElement;
+  if(!actionsContainer)return null;
+
+  let wrap=actionsContainer.querySelector('.countdown-alert-wrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.className='countdown-alert-wrap';
+    wrap.setAttribute('aria-live','polite');
+
+    const alertBox=document.createElement('div');
+    alertBox.className='countdown-alert';
+    alertBox.setAttribute('role','status');
+
+    wrap.appendChild(alertBox);
+    actionsContainer.insertBefore(wrap,startBtn);
+  }
+  return wrap.querySelector('.countdown-alert');
+}
+
+function clearCountdownAlert(){
+  clearTimeout(countdownAlertTimer);
+  clearTimeout(countdownAlertHideTimer);
+  countdownAlertTimer=null;
+  countdownAlertHideTimer=null;
+}
+
+function showCountdownAlert(message){
+  const alertEl=getCountdownAlertEl();
+  if(!alertEl){
+    toast(message);
+    return;
+  }
+
+  clearCountdownAlert();
+  alertEl.textContent=message;
+  alertEl.classList.remove('is-sliding-right','is-visible');
+  void alertEl.offsetWidth;
+  alertEl.classList.add('is-visible');
+
+  countdownAlertTimer=setTimeout(()=>{
+    alertEl.classList.remove('is-visible');
+    alertEl.classList.add('is-sliding-right');
+
+    countdownAlertHideTimer=setTimeout(()=>{
+      alertEl.classList.remove('is-sliding-right');
+      alertEl.textContent='';
+    },460);
+  },5000);
+}
+
 document.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{
   if(current===0 && !countdownFinished){
     const msg=(typeof COUNTDOWN_CONFIG!=='undefined' && COUNTDOWN_CONFIG.lockedMessage)
       ||'Tunggu sampai pergantian tanggal dari 14 Desember ke 15 Desember jam 00:00 ya, baru ceritanya bisa dibuka.';
-    toast(msg);
+    showCountdownAlert(msg);
     return;
   }
 
+  clearCountdownAlert();
   const nextIndex=current+1;
   if(current===0 || (restartedFromEnd && nextIndex===1)){
     restartedFromEnd=false;
@@ -427,6 +484,7 @@ let countdownFinished=false;
 function tick(){
   const remaining=Math.max(0,target.getTime()-Date.now());
   countdownFinished=remaining<=0;
+  if(countdownFinished)clearCountdownAlert();
   const vals=[
     Math.floor(remaining/864e5),
     Math.floor(remaining/36e5)%24,

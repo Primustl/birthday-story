@@ -17,6 +17,7 @@ let isSwitchingVideo=false;
 let wishModalMode=false;
 let wishVideoUnlocked=false;
 let bgMusicWasPlayingBeforeWishVideo=false;
+let restartedFromEnd=false;
 
 wishVideo.src=MEDIA_PATHS.wishVideo;
 wishVideo.muted=true;
@@ -130,14 +131,14 @@ function bindVideoMusicSync(videoEl){
   const resumeIfNeeded=()=>{
     if(isSwitchingVideo)return;
     if(videoEl===modalVideo && wishModalMode){
-      if(bgMusicWasPlayingBeforeWishVideo && musicEnabledByUser && current!==2){
+      if(bgMusicWasPlayingBeforeWishVideo && musicEnabledByUser && current!==2 && current!==rooms.length-1){
         bgMusicWasPlayingBeforeWishVideo=false;
         playMusic(false,false);
       }
       return;
     }
     const anyPlaying=[...storyVideos].some(v=>!v.paused) || (!wishModalMode && !modalVideo.paused);
-    if(!anyPlaying && pausedByVideo && musicEnabledByUser && current!==2){
+    if(!anyPlaying && pausedByVideo && musicEnabledByUser && current!==2 && current!==rooms.length-1){
       playMusic(false,false);
     }
   };
@@ -220,11 +221,11 @@ function closeModal(goingBackRoom=false){
   if(wasWish && current===1 && wishVideoUnlocked){
     try{wishVideo.currentTime=resumeTime;}catch{}
     showWishVideo(true);
-    if((bgMusicWasPlayingBeforeWishVideo || goingBackRoom) && musicEnabledByUser && current!==2){
+    if((bgMusicWasPlayingBeforeWishVideo || goingBackRoom) && musicEnabledByUser && current!==2 && current!==rooms.length-1){
       bgMusicWasPlayingBeforeWishVideo=false;
       playMusic(false,false);
     }
-  }else if(wasPlayingVideo && pausedByVideo && musicEnabledByUser && current!==2){
+  }else if(wasPlayingVideo && pausedByVideo && musicEnabledByUser && current!==2 && current!==rooms.length-1){
     playMusic(false,false);
   }
 }
@@ -280,13 +281,20 @@ function showRoom(i){
     clearPendingPortrait();
   }
 
+  const isEndingRoom=current===rooms.length-1;
   rooms.forEach((r,n)=>r.classList.toggle('active',n===current));
   roomNav.classList.toggle('hidden',current===0);
   progress.style.width=((current+1)/rooms.length*100)+'%';
   document.querySelector('#prev').disabled=current===0;
-  document.querySelector('#next').textContent=current===rooms.length-1?'Selesai':'Lanjut →';
+  document.querySelector('#next').textContent=isEndingRoom?'Selesai':'Lanjut →';
 
-  if(current===2){
+  if(isEndingRoom){
+    musicEnabledByUser=false;
+    pausedByVideo=false;
+    pausedByPhoto=false;
+    bgMusicWasPlayingBeforeWishVideo=false;
+    pauseMusic(false,'manual');
+  }else if(current===2){
     if(!bgMusic.paused){
       musicEnabledByUser=true;
       pauseMusic(false,'photo');
@@ -308,10 +316,21 @@ function showRoom(i){
 
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),2200)}
 document.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{
-  if(current===0)playMusic(false,true);
-  showRoom(current+1);
+  const nextIndex=current+1;
+  if(current===0 || (restartedFromEnd && nextIndex===1)){
+    restartedFromEnd=false;
+    try{bgMusic.currentTime=0;}catch{}
+    playMusic(false,true);
+  }
+  showRoom(nextIndex);
 });
-document.querySelector('#next').onclick=()=>showRoom(current+1);
+document.querySelector('#next').onclick=()=>{
+  if(current===rooms.length-1){
+    pauseMusic(false,'manual');
+    return;
+  }
+  showRoom(current+1);
+};
 document.querySelector('#prev').onclick=()=>{
   if(wishModalMode && document.querySelector('#modal').classList.contains('show')){
     closeModal(true);
@@ -319,7 +338,16 @@ document.querySelector('#prev').onclick=()=>{
   }
   showRoom(current-1);
 };
-document.querySelector('#restart').onclick=()=>showRoom(0);
+document.querySelector('#restart').onclick=()=>{
+  restartedFromEnd=true;
+  musicEnabledByUser=false;
+  pausedByVideo=false;
+  pausedByPhoto=false;
+  bgMusicWasPlayingBeforeWishVideo=false;
+  pauseMusic(false,'manual');
+  try{bgMusic.currentTime=0;}catch{}
+  showRoom(0);
+};
 const target=new Date();target.setDate(target.getDate()+7);function tick(){let d=Math.max(0,target-Date.now());let vals=[Math.floor(d/864e5),Math.floor(d/36e5)%24,Math.floor(d/6e4)%60,Math.floor(d/1e3)%60];document.querySelectorAll('#countdown .time b').forEach((e,i)=>e.textContent=String(vals[i]).padStart(2,'0'))}tick();setInterval(tick,1000);
 document.querySelector('#wishBtn').onclick=()=>{
   showWishVideo(false);

@@ -9,7 +9,8 @@ const STORY_MEDIA = {
     { file: 'photo-01.jpg', caption: 'Our memory #1' },
     { file: 'photo-02.jpg', caption: 'Our memory #2' },
     { file: 'photo-03.jpg', caption: 'Our memory #3' },
-    { file: 'photo-04.jpg', caption: 'Our memory #4' }
+    { file: 'photo-04.jpg', caption: 'Our memory #4' },
+    { file: 'photo-05.jpg', caption: 'Our memory #5' }
   ],
   videos: [
     { file: 'story-01.mp4', label: 'Video cerita #1' },

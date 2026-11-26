@@ -63,6 +63,21 @@ function pauseMusic(showMsg=false,reason='manual'){
   if(showMsg)toast('Musik dijeda');
 }
 
+function stopMusicAndReset(){
+  restartedFromEnd=true;
+  musicEnabledByUser=false;
+  pausedByVideo=false;
+  pausedByPhoto=false;
+  bgMusicWasPlayingBeforeWishVideo=false;
+  pauseMusic(false,'manual');
+  try{bgMusic.currentTime=0;}catch{}
+}
+
+function stopMusicAndGoHome(){
+  stopMusicAndReset();
+  showRoom(0);
+}
+
 function stopAllVideos(resetTime=false){
   isSwitchingVideo=true;
   storyVideos.forEach(v=>{
@@ -131,14 +146,14 @@ function bindVideoMusicSync(videoEl){
   const resumeIfNeeded=()=>{
     if(isSwitchingVideo)return;
     if(videoEl===modalVideo && wishModalMode){
-      if(bgMusicWasPlayingBeforeWishVideo && musicEnabledByUser && current!==2 && current!==rooms.length-1){
+      if(bgMusicWasPlayingBeforeWishVideo && musicEnabledByUser && current!==2){
         bgMusicWasPlayingBeforeWishVideo=false;
         playMusic(false,false);
       }
       return;
     }
     const anyPlaying=[...storyVideos].some(v=>!v.paused) || (!wishModalMode && !modalVideo.paused);
-    if(!anyPlaying && pausedByVideo && musicEnabledByUser && current!==2 && current!==rooms.length-1){
+    if(!anyPlaying && pausedByVideo && musicEnabledByUser && current!==2){
       playMusic(false,false);
     }
   };
@@ -221,11 +236,11 @@ function closeModal(goingBackRoom=false){
   if(wasWish && current===1 && wishVideoUnlocked){
     try{wishVideo.currentTime=resumeTime;}catch{}
     showWishVideo(true);
-    if((bgMusicWasPlayingBeforeWishVideo || goingBackRoom) && musicEnabledByUser && current!==2 && current!==rooms.length-1){
+    if((bgMusicWasPlayingBeforeWishVideo || goingBackRoom) && musicEnabledByUser && current!==2){
       bgMusicWasPlayingBeforeWishVideo=false;
       playMusic(false,false);
     }
-  }else if(wasPlayingVideo && pausedByVideo && musicEnabledByUser && current!==2 && current!==rooms.length-1){
+  }else if(wasPlayingVideo && pausedByVideo && musicEnabledByUser && current!==2){
     playMusic(false,false);
   }
 }
@@ -288,13 +303,7 @@ function showRoom(i){
   document.querySelector('#prev').disabled=current===0;
   document.querySelector('#next').textContent=isEndingRoom?'Selesai':'Lanjut →';
 
-  if(isEndingRoom){
-    musicEnabledByUser=false;
-    pausedByVideo=false;
-    pausedByPhoto=false;
-    bgMusicWasPlayingBeforeWishVideo=false;
-    pauseMusic(false,'manual');
-  }else if(current===2){
+  if(current===2){
     if(!bgMusic.paused){
       musicEnabledByUser=true;
       pauseMusic(false,'photo');
@@ -326,7 +335,7 @@ document.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{
 });
 document.querySelector('#next').onclick=()=>{
   if(current===rooms.length-1){
-    pauseMusic(false,'manual');
+    stopMusicAndGoHome();
     return;
   }
   showRoom(current+1);
@@ -338,16 +347,8 @@ document.querySelector('#prev').onclick=()=>{
   }
   showRoom(current-1);
 };
-document.querySelector('#restart').onclick=()=>{
-  restartedFromEnd=true;
-  musicEnabledByUser=false;
-  pausedByVideo=false;
-  pausedByPhoto=false;
-  bgMusicWasPlayingBeforeWishVideo=false;
-  pauseMusic(false,'manual');
-  try{bgMusic.currentTime=0;}catch{}
-  showRoom(0);
-};
+document.querySelector('#restart').onclick=()=>stopMusicAndGoHome();
+document.querySelector('#waLink').addEventListener('click',()=>stopMusicAndReset());
 const target=new Date();target.setDate(target.getDate()+7);function tick(){let d=Math.max(0,target-Date.now());let vals=[Math.floor(d/864e5),Math.floor(d/36e5)%24,Math.floor(d/6e4)%60,Math.floor(d/1e3)%60];document.querySelectorAll('#countdown .time b').forEach((e,i)=>e.textContent=String(vals[i]).padStart(2,'0'))}tick();setInterval(tick,1000);
 document.querySelector('#wishBtn').onclick=()=>{
   showWishVideo(false);

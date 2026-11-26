@@ -9,6 +9,8 @@ const musicBtn=document.querySelector('#musicBtn');
 const wishCircle=document.querySelector('#wishCircle');
 const wishVideo=document.querySelector('#wishVideo');
 const wishHint=document.querySelector('#wishHint');
+const cameraVideoEl=document.querySelector('#video');
+const cameraFlipBtn=document.querySelector('#cameraFlip');
 const storyVideos=new Set();
 let musicEnabledByUser=false;
 let pausedByVideo=false;
@@ -18,6 +20,7 @@ let wishModalMode=false;
 let wishVideoUnlocked=false;
 let bgMusicWasPlayingBeforeWishVideo=false;
 let restartedFromEnd=false;
+let cameraFacing='user';
 
 wishVideo.src=MEDIA_PATHS.wishVideo;
 wishVideo.muted=true;
@@ -270,9 +273,39 @@ function stopCamera(){
   if(stream){
     stream.getTracks().forEach(t=>t.stop());
     stream=null;
-    document.querySelector('#video').srcObject=null;
+    if(cameraVideoEl)cameraVideoEl.srcObject=null;
     document.querySelector('#cameraToggle').textContent='Aktifkan Kamera';
   }
+}
+
+function syncCameraMirror(){
+  if(!cameraVideoEl)return;
+  cameraVideoEl.classList.toggle('is-front',cameraFacing==='user');
+}
+
+async function startCamera(){
+  if(stream)return;
+  syncCameraMirror();
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:cameraFacing}},
+      audio:false
+    });
+    if(cameraVideoEl)cameraVideoEl.srcObject=stream;
+    document.querySelector('#cameraToggle').textContent='Matikan Kamera';
+  }catch(e){
+    toast('Kamera belum dapat diakses. Izinkan kamera di browser.');
+  }
+}
+
+if(cameraFlipBtn){
+  cameraFlipBtn.onclick=async()=>{
+    cameraFacing=cameraFacing==='user'?'environment':'user';
+    syncCameraMirror();
+    stopCamera();
+    await startCamera();
+    toast(cameraFacing==='user'?'Kamera depan aktif':'Kamera belakang aktif');
+  };
 }
 
 function showRoom(i){
@@ -355,7 +388,6 @@ document.querySelector('#wishBtn').onclick=()=>{
   toast('Harapanmu sudah dinyalakan ◇');
 };
 document.querySelector('#wishDone').onclick=()=>showRoom(2);
-async function startCamera(){if(stream)return;try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});document.querySelector('#video').srcObject=stream;document.querySelector('#cameraToggle').textContent='Matikan Kamera'}catch(e){toast('Kamera belum dapat diakses. Izinkan kamera di browser.')}}
 document.querySelector('#cameraToggle').onclick=async()=>{if(stream)stopCamera();else await startCamera()};
 
 function playShutterSound(){
@@ -397,9 +429,16 @@ document.querySelector('#capture').onclick=()=>{
   if(!stream){toast('Aktifkan kamera terlebih dahulu');return}
   clearPendingPortrait();
   playShutterSound();
-  const v=document.querySelector('#video'),c=document.querySelector('#canvas');
+  const v=cameraVideoEl,c=document.querySelector('#canvas');
+  const ctx=c.getContext('2d');
   c.width=v.videoWidth||720;c.height=v.videoHeight||960;
-  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  ctx.save();
+  if(cameraFacing==='user'){
+    ctx.translate(c.width,0);
+    ctx.scale(-1,1);
+  }
+  ctx.drawImage(v,0,0,c.width,c.height);
+  ctx.restore();
   pendingPhoto=c.toDataURL('image/jpeg',.86);
   document.querySelector('#previewImg').src=pendingPhoto;
   document.querySelector('#preview').style.display='block';

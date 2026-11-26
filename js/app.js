@@ -358,6 +358,13 @@ function showRoom(i){
 
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),2200)}
 document.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{
+  if(current===0 && !countdownFinished){
+    const msg=(typeof COUNTDOWN_CONFIG!=='undefined' && COUNTDOWN_CONFIG.lockedMessage)
+      ||'Tunggu sampai hitungan mundurnya berakhir di tanggal 15 Desember jam 00:00 ya, baru kejutan ini bisa dibuka.';
+    toast(msg);
+    return;
+  }
+
   const nextIndex=current+1;
   if(current===0 || (restartedFromEnd && nextIndex===1)){
     restartedFromEnd=false;
@@ -382,7 +389,62 @@ document.querySelector('#prev').onclick=()=>{
 };
 document.querySelector('#restart').onclick=()=>stopMusicAndGoHome();
 document.querySelector('#waLink').addEventListener('click',()=>stopMusicAndReset());
-const target=new Date();target.setDate(target.getDate()+7);function tick(){let d=Math.max(0,target-Date.now());let vals=[Math.floor(d/864e5),Math.floor(d/36e5)%24,Math.floor(d/6e4)%60,Math.floor(d/1e3)%60];document.querySelectorAll('#countdown .time b').forEach((e,i)=>e.textContent=String(vals[i]).padStart(2,'0'))}tick();setInterval(tick,1000);
+
+function parseLocalTargetDate(raw){
+  if(!raw || typeof raw!=='string')return null;
+  const trimmed=raw.trim();
+  const match=trimmed.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if(match){
+    const localDate=new Date(
+      Number(match[1]),
+      Number(match[2])-1,
+      Number(match[3]),
+      Number(match[4]),
+      Number(match[5]),
+      Number(match[6]||0),
+      0
+    );
+    if(!Number.isNaN(localDate.getTime()))return localDate;
+  }
+  const fallback=new Date(trimmed);
+  return Number.isNaN(fallback.getTime())?null:fallback;
+}
+
+function resolveCountdownTarget(){
+  const cfg=typeof COUNTDOWN_CONFIG!=='undefined'?COUNTDOWN_CONFIG:{};
+  const parsedTarget=parseLocalTargetDate(cfg.targetDate);
+  if(parsedTarget)return parsedTarget;
+
+  const days=Number.isFinite(Number(cfg.daysFromNow))?Number(cfg.daysFromNow):15;
+  const fallback=new Date();
+  fallback.setDate(fallback.getDate()+days);
+  return fallback;
+}
+
+const target=resolveCountdownTarget();
+let countdownFinished=false;
+
+function tick(){
+  const remaining=Math.max(0,target.getTime()-Date.now());
+  countdownFinished=remaining<=0;
+  const vals=[
+    Math.floor(remaining/864e5),
+    Math.floor(remaining/36e5)%24,
+    Math.floor(remaining/6e4)%60,
+    Math.floor(remaining/1e3)%60
+  ];
+  document.querySelectorAll('#countdown .time b').forEach((e,i)=>e.textContent=String(vals[i]).padStart(2,'0'));
+
+  const startBtn=document.querySelector('[data-room="0"] [data-next]');
+  if(startBtn){
+    startBtn.classList.toggle('is-locked',!countdownFinished);
+    startBtn.setAttribute('aria-disabled',String(!countdownFinished));
+  }
+}
+
+tick();
+setInterval(tick,1000);
+
 document.querySelector('#wishBtn').onclick=()=>{
   showWishVideo(false);
   toast('Harapanmu sudah dinyalakan ◇');

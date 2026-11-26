@@ -360,7 +360,7 @@ function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.
 document.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{
   if(current===0 && !countdownFinished){
     const msg=(typeof COUNTDOWN_CONFIG!=='undefined' && COUNTDOWN_CONFIG.lockedMessage)
-      ||'Tunggu sampai hitungan mundurnya berakhir di tanggal 15 Desember jam 00:00 ya, baru kejutan ini bisa dibuka.';
+      ||'Tunggu sampai pergantian tanggal dari 14 Desember ke 15 Desember jam 00:00 ya, baru ceritanya bisa dibuka.';
     toast(msg);
     return;
   }

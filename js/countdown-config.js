@@ -1,6 +1,6 @@
 const COUNTDOWN_CONFIG = {
-  // Waktu target: 15 Desember 2026 pukul 00:00:00 (jam 12 malam / 00) waktu lokal perangkat
+  // Berjalan melewati 14 Desember 2026 dan tepat menjadi 00:00:00 saat pergantian tanggal ke 15 Desember 2026
   targetDate: '2026-12-15T00:00:00',
   daysFromNow: 15,
-  lockedMessage: 'Tunggu sampai hitungan mundurnya berakhir di tanggal 15 Desember jam 00:00 ya, baru kejutan ini bisa dibuka.'
+  lockedMessage: 'Tunggu sampai pergantian tanggal dari 14 Desember ke 15 Desember jam 00:00 ya, baru ceritanya bisa dibuka.'
 };
